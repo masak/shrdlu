@@ -5,5 +5,6 @@ class Shrdlu {
     }
 
     method reply() {
+        return ['OK.'];
     }
 }
