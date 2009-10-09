@@ -1,0 +1,8 @@
+use v6;
+use Shrdlu;
+
+my $machine = Shrdlu.new;
+while defined (my $input = prompt('Person: ')) {
+    $machine.tell($input);
+    say 'Computer: ', $_ for $machine.reply;
+}
