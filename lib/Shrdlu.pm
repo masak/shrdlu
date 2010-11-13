@@ -1,30 +1,25 @@
 use v6;
 
 grammar Shrdlu::Language {
-    rule TOP { ^ <order> $ }
+    token TOP { ^ <order> $ }
 
     rule order { <pick_up> <noun_phrase> '.'? }
 
-    rule pick_up { pick up | grasp }
+    token pick_up { 'pick up' | grasp }
 
-    rule noun_phrase { <article> <attribute>* <noun> }
+    rule noun_phrase { <article> [<attribute> \h*]* <noun> }
 
-    rule article { a | the }
-    rule attribute { <color> | <size> }
-    rule color { red }
-    rule size { big }
-    rule noun { block | pyramid }
+    token article { a | the }
+    token attribute { <color> | <size> }
+    token color { red }
+    token size { big }
+    token noun { block | pyramid }
 }
 
 class Shrdlu::Object {
     has $.size;
     has $.shape;
     has $.color;
-
-    # RAKUDO: Possibly do this one better
-    method new($size, $shape, $color) {
-        self.bless(*, :$size, :$shape, :$color);
-    }
 }
 
 class Shrdlu {
@@ -32,19 +27,17 @@ class Shrdlu {
     has @.reply;
 
     submethod BUILD() {
-        given Shrdlu::Object {
-            @!blocks =
-                .new( |<big red block> ),
-                .new( |<big red pyramid> ),
-                .new( |<small green pyramid> ),
-            ;
-        }
+        @!blocks =
+            .new( :size<big>, :color<red>, :shape<block> ),
+            .new( :size<big>, :color<red>, :shape<pyramid> ),
+            .new( :size<small>, :color<green>, :shape<pyramid> )
+                given Shrdlu::Object;
     }
 
     method tell(Str $sentence) {
         if Shrdlu::Language.parse($sentence.lc) {
             my @possible-objects;
-            my ($desired-shape, $desired-size, $desired-color) = *, *, *;
+            my ($desired-shape, $desired-size, $desired-color);
             given $<order><noun_phrase> {
                 $desired-shape = ~.<noun>;
                 if .<attribute> {
@@ -61,9 +54,11 @@ class Shrdlu {
                     }
                 }
             }
+            $desired-color //= *;
+            $desired-size  //= *;
             @possible-objects = grep {
-                all(                .shape,         .size,         .color
-                     >>~~<< $desired-shape, $desired-size, $desired-color )
+                all(        (        .shape,         .size,         .color)
+                     >>~~<< ($desired-shape, $desired-size, $desired-color) )
             }, @!blocks;
             @!reply = @possible-objects == 1
                         ?? 'OK.'
